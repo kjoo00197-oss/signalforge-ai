@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SignalForge AI</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f23; color: #fff; text-align: center; padding: 40px; }
+    h1 { color: #635bff; font-size: 2.5rem; margin-bottom: 10px; }
+    p { margin: 10px 0; }
+    button { 
+      padding: 14px 32px; margin: 15px; font-size: 18px; 
+      background: #635bff; color: white; border: none; border-radius: 12px; cursor: pointer; 
+    }
+    button:hover { background: #5048cc; }
+    #signal-card { 
+      background:#1a1a2e; padding:20px; border-radius:12px; 
+      max-width:500px; margin:20px auto; border:2px solid #635bff; 
+    }
+    .badge { background:#fbbf24; color:#000; padding:4px 8px; border-radius:6px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h1>SignalForge AI</h1>
+  <p><strong>6 FREE AI Signals Daily</strong> • FX • Crypto • Perpetuals (20x)</p>
+
+  <div id="signal-card">
+    <p id="status">Fetching your signal...</p>
+
+    <div id="signal" style="display:none;">
+      <h3 id="pair" style="color:#635bff;"></h3>
+      <p style="font-size:14px; color:#888;" id="type-label"></p>
+      <p><strong>Direction:</strong> <span id="direction" style="color:#4ade80; font-weight:bold; font-size:18px;"></span></p>
+      <p><strong>Entry:</strong> <span id="entry"></span></p>
+      <p><strong>TP:</strong> <span id="tp"></span> | <strong>SL:</strong> <span id="sl"></span></p>
+      <div style="display:flex; justify-content:space-between; margin:10px 0; font-size:14px;">
+        <span><strong>Leverage:</strong> <span id="leverage"></span>x</span>
+        <span id="funding" style="display:none;"><strong>Funding:</strong> <span id="funding_rate"></span></span>
+      </div>
+      <p><strong>Reason:</strong> <span id="reason"></span></p>
+      <p><strong>Confidence:</strong> <span id="confidence" style="color:#fbbf24;"></span></p>
+      <p><em>Expires: <span id="expires"></span></em></p>
+      <p id="counter" style="color:#4ade80; font-weight:bold;"></p>
+    </div>
+
+    <div id="limit" style="display:none; color:#ff6b6b;">
+      <p><strong>All 6 FREE signals used today!</strong></p>
+      <p id="breakdown"></p>
+      <button id="checkout-button">Upgrade to Premium ($19/mo USDC)</button>
+      <p><small>Resets tomorrow at 3:00 AM EAT</small></p>
+    </div>
+  </div>
+
+  <button id="new-signal">Get New Signal</button>
+
+  <script>
+    const stripe = Stripe('pk_test_51...'); // REPLACE WITH YOUR KEY
+    let isPremium = localStorage.getItem('premium') === 'true';
+
+    async function loadSignal() {
+      document.getElementById('status').style.display = 'block';
+      document.getElementById('signal').style.display = 'none';
+      document.getElementById('limit').style.display = 'none';
+
+      const res = await fetch(`/api/generate-signal?premium=${isPremium}`, {
+        headers: { 'x-user-id': 'user123' }
+      });
+      const signal = await res.json();
+
+      if (signal.free === false) {
+        document.getElementById('limit').style.display = 'block';
+        document.getElementById('breakdown').innerText = signal.breakdown || '';
+        document.getElementById('status').style.display = 'none';
+      } else {
+        document.getElementById('signal').style.display = 'block';
+        document.getElementById('status').style.display = 'none';
+        document.getElementById('type-label').innerText = signal.type;
+        document.getElementById('pair').innerText = signal.pair;
+        document.getElementById('direction').innerText = signal.direction;
+        document.getElementById('entry').innerText = signal.entry;
+        document.getElementById('tp').innerText = signal.tp;
+        document.getElementById('sl').innerText = signal.sl;
+        document.getElementById('leverage').innerText = signal.leverage;
+        document.getElementById('confidence').innerText = signal.confidence;
+        document.getElementById('expires').innerText = signal.expires_in;
+        document.getElementById('counter').innerText = signal.message || '';
+
+        if (signal.funding_rate && signal.funding_rate !== 'N/A') {
+          document.getElementById('funding').style.display = 'block';
+          document.getElementById('funding_rate').innerText = signal.funding_rate;
+        }
+      }
+    }
+
+    document.getElementById('new-signal').addEventListener('click', loadSignal);
+    document.getElementById('checkout-button')?.addEventListener('click', async () => {
+      const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+      const { id } = await res.json();
+      stripe.redirectToCheckout({ sessionId: id });
+    });
+
+    loadSignal();
+  </script>
+</body>
+</html>
