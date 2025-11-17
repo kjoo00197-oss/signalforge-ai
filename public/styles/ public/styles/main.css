@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/((?!.*\\..*).*)",
+      "dest": "/api/index.js"
+    }
+  ],
+  "functions": {
+    "api/*.js": {
+      "runtime": "@vercel/node",
+      "maxDuration": 10
+    }
+  }
+}
